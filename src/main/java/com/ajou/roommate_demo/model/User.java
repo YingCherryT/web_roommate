@@ -49,6 +49,9 @@ public class User {
     @Column(name = "full_name", nullable = false, length = 100) // 姓名字段
     private String fullName;
 
+    @Column(name = "profile_picture", length = 255)
+    private String profilePicturePath;  // 存储图片文件的路径
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -136,5 +139,13 @@ public class User {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getProfilePicturePath() {
+        return profilePicturePath;
+    }
+
+    public void setProfilePicturePath(String profilePicturePath) {
+        this.profilePicturePath = profilePicturePath;
     }
 }

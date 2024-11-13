@@ -7,6 +7,7 @@ package com.ajou.roommate_demo.dto;
  * @Date 2024/11/5 21:39
  * @Version 1.0
  */
+
 public class RegisterRequest {
     private String studentId;  // 学号
     private String username;   // 用户名
@@ -14,7 +15,19 @@ public class RegisterRequest {
     private String fullName;   // 姓名
     private String gender;     // 性别
 
-    // Getters and Setters
+    // 默认构造函数（可以用于 Spring 等框架自动映射）
+    public RegisterRequest() {}
+
+    // 带参构造函数
+    public RegisterRequest(String studentId, String username, String password, String fullName, String gender) {
+        this.studentId = studentId;
+        this.username = username;
+        this.password = password;
+        this.fullName = fullName;
+        this.gender = gender;
+    }
+
+    // Getters 和 Setters
     public String getStudentId() {
         return studentId;
     }

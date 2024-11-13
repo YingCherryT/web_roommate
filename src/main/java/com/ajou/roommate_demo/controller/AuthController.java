@@ -4,14 +4,14 @@ import com.ajou.roommate_demo.dto.LoginRequest;
 import com.ajou.roommate_demo.dto.RegisterRequest;
 import com.ajou.roommate_demo.dto.UserDTO;
 import com.ajou.roommate_demo.exception.ErrorResponse;
+import com.ajou.roommate_demo.exception.LoginException;
 import com.ajou.roommate_demo.exception.RegistrationException;
 import com.ajou.roommate_demo.service.AuthService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * @PACKAGE_NAME: com.ajou.roommate_demo.controller
@@ -24,37 +24,48 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final AuthService authService;
+    @Autowired
+    private AuthService authService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
-
-    // 用户注册
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
         try {
+            // 假设注册请求没有用户名会抛出 RegistrationException
+            if (registerRequest.getUsername() == null || registerRequest.getUsername().isEmpty()) {
+                throw new RegistrationException("USERNAME_MISSING", "Username is required.");
+            }
+
             UserDTO userDTO = authService.register(registerRequest);
             return ResponseEntity.ok(userDTO);
         } catch (RegistrationException e) {
-            // 自定义异常处理
-            ErrorResponse errorResponse = new ErrorResponse(e.getErrorCode(), e.getMessage(), "Details about the registration issue.");
-            return ResponseEntity.badRequest().body(errorResponse);
+            ErrorResponse errorResponse = new ErrorResponse(e.getErrorCode(), e.getMessage(), "Please check the registration details.");
+            return ResponseEntity.badRequest().body(errorResponse);  // 返回 400 错误
         } catch (Exception e) {
-            // 处理其他异常
             ErrorResponse errorResponse = new ErrorResponse("GENERAL_ERROR", "An unexpected error occurred", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
-    }
-    // 用户登录
-    @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequest loginRequest) {
-        try {
-            String token = authService.login(loginRequest);
-            return ResponseEntity.ok(token);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Invalid credentials");  // 返回错误响应
+            return ResponseEntity.status(500).body(errorResponse);  // 返回 500 错误
         }
     }
 
+
+    @PostMapping("/login")
+    public String login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        try {
+            // 登录认证
+            String token = authService.login(loginRequest);
+
+            // 登录成功，保存 token 或者用户信息到 Session
+            request.getSession().setAttribute("token", token);  // 将 token 存入 session 中
+
+            // 重定向到首页
+            return "redirect:/index";  // 返回视图名，可以是 index.jsp
+        } catch (LoginException e) {
+            ErrorResponse errorResponse = new ErrorResponse(e.getErrorCode(), e.getMessage(), "Please check your credentials.");
+            request.setAttribute("error", errorResponse);  // 将错误信息存入 request 中
+            return "login";  // 返回登录页面
+        } catch (Exception e) {
+            ErrorResponse errorResponse = new ErrorResponse("GENERAL_ERROR", "An unexpected error occurred", e.getMessage());
+            request.setAttribute("error", errorResponse);  // 将错误信息存入 request 中
+            return "login";  // 返回登录页面
+        }
+    }
 }

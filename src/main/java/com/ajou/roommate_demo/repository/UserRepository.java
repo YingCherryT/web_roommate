@@ -15,35 +15,20 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User,Integer> {
     // 根据用户名查找用户
-    User findByUsername(String username);
+    Optional<User> findByUsername(String username);
 
     // 根据学号查找用户
-    User findByStudentId(String studentId);
+    Optional<User> findByStudentId(String studentId);
 
-
-    /**
-     * @param studentId
-     * @return
-     */
-    boolean existsByStudentId(String studentId);
-    /**
-     * @Author: Tyz
-     * @Description: 这是注册需要的
-     * @Date: 2024/11/7 8:33
-     * @Param:
-* @param username
-     * @return: boolean
-     **/
-    boolean existsByUsername(String username);
-    //可以安全的返回值Optional可为null
-    /**
-     * @Author: Tyz 
-     * @Description: 这是登录模块
-     * @Date: 2024/11/7 8:31
-     * @Param: 
-* @param studentId
-* @param username
-     * @return: Optional<User>
-     **/
+    // 根据用户名或学号查找用户
     Optional<User> findByStudentIdOrUsername(String studentId, String username);
+
+    // 检查是否已存在相同学号
+    boolean existsByStudentId(String studentId);
+
+    // 检查是否已存在相同用户名
+    boolean existsByUsername(String username);
+
+    // 根据 userId 查找用户
+    Optional<User> findById(Integer userId);
 }

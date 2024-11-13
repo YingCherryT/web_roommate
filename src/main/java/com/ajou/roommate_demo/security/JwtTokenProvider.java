@@ -28,8 +28,8 @@ public class JwtTokenProvider {
     @Value("${jwt.expiration}")  // 从配置文件中读取过期时间（单位：毫秒）
     private long expirationTime;
 
-    // 生成 JWT Token
-    public String generateToken(String username) {
+    // 生成 JWT Token，除了用户名外，还可以存储更多的信息（例如 userId）
+    public String generateToken(Integer userId, String username) {
         // 使用 secretKey 创建一个 SecretKey 对象
         SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes());
 
@@ -38,6 +38,7 @@ public class JwtTokenProvider {
                 .setSubject(username)  // 设置 JWT 的主体为用户名
                 .setIssuedAt(new Date())  // 设置 token 创建时间
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime))  // 设置过期时间
+                .claim("userId", userId)  // 在 token 中携带 userId
                 .claim("sub", username)  // 使用 claim 设置自定义字段（例如：subject）
                 .signWith(key, SignatureAlgorithm.HS512);  // 使用密钥进行签名
 
@@ -60,6 +61,21 @@ public class JwtTokenProvider {
         return claims.getSubject();  // 返回用户标识（如用户名）
     }
 
+    // 从 JWT 获取 userId
+    public Integer getUserIdFromToken(String token) {
+        // 使用 secretKey 创建 SecretKey 对象
+        SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes());
+
+        // 解析 JWT Token 并获取 Claims
+        Claims claims = Jwts.parser()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("userId", Integer.class);  // 获取 userId
+    }
+
     // 验证 JWT 是否有效
     public boolean validateToken(String token) {
         try {
@@ -76,6 +92,8 @@ public class JwtTokenProvider {
             return !claimsJws.getBody().getExpiration().before(new Date());
         } catch (Exception e) {
             // 如果发生任何异常，表示 token 无效
+            // 打印错误日志（可以自定义日志处理）
+            System.err.println("Token validation failed: " + e.getMessage());
             return false;
         }
     }

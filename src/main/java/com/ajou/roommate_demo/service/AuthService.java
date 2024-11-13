@@ -3,6 +3,8 @@ package com.ajou.roommate_demo.service;
 import com.ajou.roommate_demo.dto.LoginRequest;
 import com.ajou.roommate_demo.dto.RegisterRequest;
 import com.ajou.roommate_demo.dto.UserDTO;
+import com.ajou.roommate_demo.exception.LoginException;
+import com.ajou.roommate_demo.exception.RegistrationException;
 import com.ajou.roommate_demo.model.User;
 import com.ajou.roommate_demo.repository.UserRepository;
 import com.ajou.roommate_demo.security.JwtTokenProvider;
@@ -24,22 +26,21 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
-    @Autowired //（可加可不加）
+    @Autowired
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
-
     // 用户注册
-    public UserDTO register(RegisterRequest registerRequest) throws Exception {
+    public UserDTO register(RegisterRequest registerRequest) {
         // 1. 检查学号或用户名是否已存在
         if (userRepository.existsByStudentId(registerRequest.getStudentId())) {
-            throw new Exception("Student ID already exists");
+            throw new RegistrationException("Student ID already exists", "USER_ALREADY_EXISTS");
         }
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            throw new Exception("Username already exists");
+            throw new RegistrationException("Username already exists", "USER_ALREADY_EXISTS");
         }
 
         // 2. 创建用户实体并加密密码
@@ -58,24 +59,21 @@ public class AuthService {
         user = userRepository.save(user);
 
         // 5. 转换为 DTO 并返回
-        return new UserDTO(user.getStudentId(),user.getUsername(), user.getFullName(), user.getGender().toString());
+        return new UserDTO(user.getStudentId(), user.getUsername(), user.getFullName(), user.getGender().toString());
     }
 
-
-
     // 用户登录
-    public String login(LoginRequest loginRequest) throws Exception {
+    public String login(LoginRequest loginRequest) {
         // 1. 查找用户
         User user = userRepository.findByStudentIdOrUsername(loginRequest.getStudentId(), loginRequest.getUsername())
-                .orElseThrow(() -> new Exception("Invalid credentials"));
+                .orElseThrow(() -> new LoginException("Invalid credentials", "INVALID_CREDENTIALS"));
 
         // 2. 验证密码
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-            throw new Exception("Invalid credentials");
+            throw new LoginException("Invalid credentials", "INVALID_CREDENTIALS");
         }
 
         // 3. 生成 JWT Token
-        return jwtTokenProvider.generateToken(user.getUsername());
+        return jwtTokenProvider.generateToken(user.getUserId(), user.getUsername());
     }
-
 }
